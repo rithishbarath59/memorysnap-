@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<title>MemorySnap</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0f1a;
+  --surface:#1a1a2e;
+  --surface2:#252540;
+  --accent:#6c63ff;
+  --accent2:#ff6584;
+  --accent3:#43e97b;
+  --text:#f0f0ff;
+  --text2:#9999cc;
+  --text3:#5555aa;
+  --radius:18px;
+  --radius-sm:10px;
+  --card-shadow:0 8px 32px rgba(108,99,255,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
+
+/* ─── VIEWS ─── */
+.view{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden;}
+.view.active{display:flex;}
+
+/* ─── LOCK SCREEN ─── */
+#lockScreen{
+  background:linear-gradient(145deg,#0f0f1a 0%,#1a1a2e 60%,#0d0d20 100%);
+  align-items:center;justify-content:center;
+  z-index:100;
+}
+#lockCard{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:40px 32px;
+  text-align:center;cursor:pointer;position:relative;overflow:hidden;
+}
+#lockCard::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 30%,rgba(108,99,255,0.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.lock-tag{
+  background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);
+  color:var(--accent);font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  padding:6px 16px;border-radius:20px;margin-bottom:32px;font-family:'Syne',sans-serif;
+}
+#lockQuestion{
+  font-family:'Syne',sans-serif;font-size:clamp(20px,5vw,28px);
+  font-weight:700;line-height:1.35;color:var(--text);
+  margin-bottom:24px;max-width:380px;
+}
+#lockImage{
+  width:100%;max-height:200px;object-fit:cover;
+  border-radius:var(--radius);margin-bottom:24px;
+  display:none;border:1px solid rgba(108,99,255,0.2);
+}
+.lock-hint{
+  color:var(--text3);font-size:13px;display:flex;align-items:center;gap:8px;
+  margin-top:auto;padding-top:32px;
+}
+.lock-hint span{
+  display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  padding:3px 10px;border-radius:6px;font-size:11px;
+}
+#lockAnswer{
+  width:100%;background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);
+  border-radius:var(--radius);padding:24px;margin-top:24px;
+  display:none;text-align:left;position:relative;
+}
+#lockAnswer::before{
+  content:'Answer';position:absolute;top:-10px;left:16px;
+  background:var(--accent);color:#fff;font-size:10px;letter-spacing:1px;
+  text-transform:uppercase;padding:3px 12px;border-radius:10px;
+  font-family:'Syne',sans-serif;font-weight:600;
+}
+#lockAnswerText{font-size:16px;color:var(--text);line-height:1.6;}
+#lockAnswerImage{
+  width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);
+  margin-top:16px;display:none;
+}
+.lock-card-tag{
+  position:absolute;top:20px;right:20px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  padding:5px 14px;border-radius:20px;font-size:12px;color:var(--text2);
+  font-family:'Syne',sans-serif;
+}
+.no-cards-msg{
+  font-family:'Syne',sans-serif;font-size:18px;color:var(--text2);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+}
+.no-cards-msg .icon{font-size:48px;opacity:0.4;}
+
+/* ─── HOME ─── */
+#homeScreen{background:var(--bg);}
+.home-header{
+  padding:56px 24px 20px;
+  background:linear-gradient(180deg,rgba(108,99,255,0.08) 0%,transparent 100%);
+}
+.home-logo{
+  display:flex;align-items:center;gap:12px;margin-bottom:8px;
+}
+.logo-icon{
+  width:42px;height:42px;background:var(--accent);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  box-shadow:0 4px 20px rgba(108,99,255,0.4);
+}
+.logo-icon svg{width:22px;height:22px;}
+.app-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px;}
+.home-subtitle{color:var(--text2);font-size:14px;margin-top:4px;}
+.stats-row{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;
+  padding:16px 24px;
+}
+.stat-card{
+  background:var(--surface);border-radius:var(--radius-sm);
+  padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.05);
+}
+.stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--accent);}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
+.section-title{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:600;
+  color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;
+  padding:0 24px;margin:8px 0;
+}
+.cards-list{
+  flex:1;overflow-y:auto;padding:0 16px 100px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.flash-card-item{
+  background:var(--surface);border-radius:var(--radius);
+  padding:18px 20px;border:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;gap:16px;
+  position:relative;overflow:hidden;cursor:pointer;
+  transition:transform 0.15s,background 0.15s;
+}
+.flash-card-item:active{transform:scale(0.98);background:var(--surface2);}
+.flash-card-item::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--accent);border-radius:2px;
+}
+.card-item-icon{
+  width:44px;height:44px;background:rgba(108,99,255,0.15);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:18px;
+}
+.card-item-info{flex:1;min-width:0;}
+.card-item-q{
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);
+}
+.card-item-a{
+  font-size:13px;color:var(--text2);margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.card-item-badge{
+  font-size:11px;padding:3px 10px;border-radius:10px;flex-shrink:0;
+  font-family:'Syne',sans-serif;font-weight:600;
+}
+.badge-new{background:rgba(67,233,123,0.15);color:var(--accent3);}
+.badge-due{background:rgba(255,101,132,0.15);color:var(--accent2);}
+.badge-ok{background:rgba(108,99,255,0.15);color:var(--accent);}
+.empty-state{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;text-align:center;padding:40px;
+  color:var(--text3);
+}
+.empty-icon{
+  width:80px;height:80px;background:var(--surface);border-radius:20px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:8px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+.empty-icon svg{width:36px;height:36px;opacity:0.4;}
+.empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text2);}
+.empty-sub{font-size:14px;line-height:1.6;}
+
+/* ─── FAB ─── */
+.fab{
+  position:fixed;bottom:90px;right:20px;
+  width:58px;height:58px;border-radius:18px;
+  background:var(--accent);border:none;color:#fff;
+  font-size:28px;cursor:pointer;
+  box-shadow:0 6px 24px rgba(108,99,255,0.5);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.15s,box-shadow 0.15s;z-index:50;
+}
+.fab:active{transform:scale(0.93);box-shadow:0 3px 12px rgba(108,99,255,0.4);}
+
+/* ─── BOTTOM NAV ─── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(15,15,26,0.92);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:space-around;
+  padding:10px 0 max(10px,env(safe-area-inset-bottom));
+  z-index:40;
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  padding:6px 20px;font-family:'DM Sans',sans-serif;transition:color 0.15s;
+}
+.nav-btn.active{color:var(--accent);}
+.nav-btn svg{width:22px;height:22px;}
+.nav-btn span{font-size:11px;letter-spacing:0.3px;}
+
+/* ─── STUDY ─── */
+#studyScreen{background:var(--bg);align-items:center;justify-content:center;}
+.study-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 30% 20%,rgba(108,99,255,0.1) 0%,transparent 60%),
+             radial-gradient(ellipse at 70% 80%,rgba(255,101,132,0.07) 0%,transparent 60%);
+  pointer-events:none;
+}
+.study-header{
+  position:absolute;top:0;left:0;right:0;
+  padding:56px 24px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.study-progress{
+  flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin:0 16px;overflow:hidden;
+}
+.study-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s;}
+.study-close,.study-shuffle{
+  background:rgba(255,255,255,0.08);border:none;color:var(--text2);
+  width:38px;height:38px;border-radius:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.flip-card-wrap{
+  width:90%;max-width:420px;perspective:1200px;
+  cursor:pointer;-webkit-user-select:none;user-select:none;
+}
+.flip-card{
+  position:relative;width:100%;
+  transform-style:preserve-3d;transition:transform 0.55s cubic-bezier(.4,0,.2,1);
+}
+.flip-card.flipped{transform:rotateY(180deg);}
+.flip-face{
+  width:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--surface);border-radius:24px;
+  border:1px solid rgba(255,255,255,0.08);
+  padding:32px 28px;min-height:320px;
+  display:flex;flex-direction:column;box-shadow:var(--card-shadow);
+}
+.flip-face.back{
+  position:absolute;top:0;left:0;
+  transform:rotateY(180deg);
+  background:linear-gradient(135deg,rgba(108,99,255,0.12),rgba(255,101,132,0.08));
+  border-color:rgba(108,99,255,0.2);
+}
+.face-label{
+  font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);
+  font-family:'Syne',sans-serif;font-weight:600;margin-bottom:20px;
+}
+.face-content{
+  flex:1;font-family:'Syne',sans-serif;font-size:clamp(17px,4.5vw,22px);
+  font-weight:600;line-height:1.45;color:var(--text);
+}
+.face-image{
+  width:100%;max-height:180px;object-fit:cover;
+  border-radius:var(--radius-sm);margin-top:16px;display:none;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.flip-hint{
+  font-size:12px;color:var(--text3);text-align:center;margin-top:12px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.study-actions{
+  position:absolute;bottom:100px;left:0;right:0;
+  padding:0 32px;display:flex;gap:16px;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;
+}
+.study-actions.visible{opacity:1;pointer-events:all;}
+.action-btn{
+  flex:1;padding:16px;border-radius:16px;border:none;font-family:'Syne',sans-serif;
+  font-size:14px;font-weight:600;cursor:pointer;transition:transform 0.12s;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.action-btn:active{transform:scale(0.95);}
+.btn-hard{background:rgba(255,101,132,0.15);color:var(--accent2);border:1px solid rgba(255,101,132,0.2);}
+.btn-ok{background:rgba(108,99,255,0.15);color:var(--accent);border:1px solid rgba(108,99,255,0.2);}
+.btn-easy{background:rgba(67,233,123,0.15);color:var(--accent3);border:1px solid rgba(67,233,123,0.2);}
+.action-sub{font-size:10px;opacity:0.7;font-weight:400;}
+.study-empty{
+  text-align:center;color:var(--text2);padding:32px;
+  font-family:'Syne',sans-serif;
+}
+.study-empty .icon{font-size:56px;margin-bottom:20px;opacity:0.5;}
+.study-empty h2{font-size:22px;font-weight:700;margin-bottom:12px;}
+.study-empty p{font-size:15px;color:var(--text3);line-height:1.6;}
+
+/* ─── CREATE / EDIT ─── */
+#createScreen{background:var(--bg);}
+.create-header{
+  padding:56px 20px 16px;display:flex;align-items:center;gap:12px;
+  background:linear-gradient(180deg,rgba(108,99,255,0.06) 0%,transparent 100%);
+}
+.back-btn{
+  background:rgba(255,255,255,0.07);border:none;color:var(--text);
+  width:40px;height:40px;border-radius:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.create-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
+.save-btn{
+  margin-left:auto;background:var(--accent);border:none;color:#fff;
+  padding:10px 22px;border-radius:12px;font-family:'Syne',sans-serif;
+  font-size:14px;font-weight:600;cursor:pointer;
+  transition:background 0.15s,transform 0.12s;
+}
+.save-btn:active{transform:scale(0.96);}
+.create-body{flex:1;overflow-y:auto;padding:0 20px 120px;}
+.create-tabs{
+  display:flex;background:var(--surface);border-radius:12px;padding:4px;
+  margin-bottom:20px;gap:4px;
+}
+.create-tab{
+  flex:1;padding:10px;border:none;border-radius:8px;
+  background:none;color:var(--text3);font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;
+}
+.create-tab.active{background:var(--accent);color:#fff;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+.field-label{
+  font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text3);font-family:'Syne',sans-serif;margin-bottom:8px;margin-top:20px;
+}
+textarea{
+  width:100%;background:var(--surface);border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;
+  font-size:16px;padding:16px;resize:none;outline:none;
+  transition:border-color 0.15s;line-height:1.55;
+}
+textarea:focus{border-color:var(--accent);}
+.img-upload-area{
+  border:2px dashed rgba(108,99,255,0.3);border-radius:var(--radius-sm);
+  padding:28px;text-align:center;cursor:pointer;margin-top:8px;
+  transition:border-color 0.15s,background 0.15s;position:relative;overflow:hidden;
+}
+.img-upload-area:active,.img-upload-area.has-image{
+  border-color:var(--accent);background:rgba(108,99,255,0.05);
+}
+.upload-preview{
+  width:100%;max-height:200px;object-fit:cover;border-radius:10px;display:none;
+}
+.upload-placeholder{color:var(--text3);font-size:14px;}
+.upload-placeholder .ico{font-size:32px;margin-bottom:8px;}
+.upload-placeholder p{font-size:13px;margin-top:4px;}
+input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.emoji-picker{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;
+}
+.emoji-btn{
+  width:44px;height:44px;border:1px solid rgba(255,255,255,0.08);
+  background:var(--surface);border-radius:10px;font-size:20px;cursor:pointer;
+  transition:border-color 0.15s;
+}
+.emoji-btn.selected{border-color:var(--accent);background:rgba(108,99,255,0.15);}
+
+/* ─── SETTINGS ─── */
+#settingsScreen{background:var(--bg);}
+.settings-header{
+  padding:56px 24px 20px;
+  background:linear-gradient(180deg,rgba(108,99,255,0.06) 0%,transparent 100%);
+}
+.settings-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;}
+.settings-list{flex:1;overflow-y:auto;padding:0 16px 100px;}
+.settings-group{margin-bottom:24px;}
+.settings-group-title{
+  font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);padding:0 8px;margin-bottom:8px;font-family:'Syne',sans-serif;
+}
+.setting-item{
+  background:var(--surface);border-radius:var(--radius-sm);
+  padding:16px 18px;margin-bottom:2px;display:flex;
+  align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.04);
+}
+.setting-item:first-of-type{border-radius:var(--radius-sm) var(--radius-sm) 4px 4px;}
+.setting-item:last-of-type{border-radius:4px 4px var(--radius-sm) var(--radius-sm);}
+.setting-item:only-child{border-radius:var(--radius-sm);}
+.setting-icon{
+  width:36px;height:36px;background:rgba(108,99,255,0.15);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:16px;
+}
+.setting-text{flex:1;}
+.setting-label{font-size:15px;font-weight:500;color:var(--text);}
+.setting-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+.toggle{
+  width:50px;height:28px;background:rgba(255,255,255,0.1);border-radius:14px;
+  position:relative;cursor:pointer;transition:background 0.25s;flex-shrink:0;
+}
+.toggle.on{background:var(--accent);}
+.toggle::after{
+  content:'';position:absolute;width:22px;height:22px;
+  background:#fff;border-radius:50%;top:3px;left:3px;
+  transition:left 0.25s;box-shadow:0 2px 6px rgba(0,0,0,0.3);
+}
+.toggle.on::after{left:25px;}
+.danger-btn{
+  width:100%;padding:16px;background:rgba(255,101,132,0.1);
+  border:1px solid rgba(255,101,132,0.2);border-radius:var(--radius-sm);
+  color:var(--accent2);font-family:'Syne',sans-serif;font-size:15px;
+  font-weight:600;cursor:pointer;margin-top:8px;
+}
+
+/* ─── NOTIFICATIONS / SRS INFO ─── */
+.srs-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;background:rgba(108,99,255,0.12);
+  border:1px solid rgba(108,99,255,0.2);border-radius:20px;
+  font-size:13px;color:var(--accent);margin:4px;cursor:default;
+}
+.srs-row{display:flex;flex-wrap:wrap;padding:0 16px;margin-bottom:16px;}
+
+/* ─── TOAST ─── */
+.toast{
+  position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#333;color:#fff;padding:12px 24px;border-radius:12px;
+  font-size:14px;opacity:0;transition:all 0.3s;z-index:999;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ─── ANIMATIONS ─── */
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.slide-up{animation:slideUp 0.3s ease forwards;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ LOCK SCREEN ═══════════ -->
+<div class="view active" id="lockScreen">
+  <div id="lockCard" ondblclick="revealAnswer()" ontouchend="handleLockTap(event)">
+    <div class="lock-tag">✦ Memory Recall</div>
+    <div id="lockContent">
+      <div class="no-cards-msg" id="noCardsMsg">
+        <div class="icon">🃏</div>
+        <div>No cards yet.<br>Unlock to add some!</div>
+      </div>
+    </div>
+    <div class="lock-hint" id="lockHint" style="display:none">
+      <span>double tap</span> to reveal answer
+    </div>
+    <div class="lock-answer-wrap" id="lockAnswerWrap" style="display:none">
+      <div id="lockAnswer">
+        <img id="lockAnswerImage" src="" alt="">
+        <div id="lockAnswerText"></div>
+      </div>
+      <div class="lock-hint" style="margin-top:16px">
+        <span>tap anywhere</span> to unlock
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ HOME SCREEN ═══════════ -->
+<div class="view" id="homeScreen">
+  <div class="home-header">
+    <div class="home-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="8" height="8" rx="2" fill="rgba(255,255,255,0.9)"/>
+          <rect x="12" y="2" width="8" height="8" rx="2" fill="rgba(255,255,255,0.6)"/>
+          <rect x="2" y="12" width="8" height="8" rx="2" fill="rgba(255,255,255,0.6)"/>
+          <rect x="12" y="12" width="8" height="8" rx="2" fill="rgba(255,255,255,0.9)"/>
+        </svg>
+      </div>
+      <div class="app-name">MemorySnap</div>
+    </div>
+    <div class="home-subtitle" id="homeGreeting">What will you remember today?</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-label">Cards</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statDue">0</div>
+      <div class="stat-label">Due</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statStreak">0</div>
+      <div class="stat-label">🔥 Streak</div>
+    </div>
+  </div>
+
+  <div class="srs-row">
+    <div class="srs-badge">📅 New → 1d</div>
+    <div class="srs-badge">📅 1d → 3d</div>
+    <div class="srs-badge">📅 3d → 7d</div>
+    <div class="srs-badge">📅 7d → 30d</div>
+  </div>
+
+  <div class="section-title" id="cardsLabel">ALL CARDS</div>
+  <div class="cards-list" id="cardsList"></div>
+
+  <button class="fab" onclick="openCreate()">+</button>
+</div>
+
+<!-- ═══════════ STUDY SCREEN ═══════════ -->
+<div class="view" id="studyScreen">
+  <div class="study-bg"></div>
+  <div class="study-header">
+    <button class="study-close" onclick="goHome()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </button>
+    <div class="study-progress"><div class="study-progress-fill" id="studyProgressFill"></div></div>
+    <div style="font-family:'Syne',sans-serif;font-size:13px;color:var(--text3)" id="studyCounter">0/0</div>
+    <button class="study-shuffle" style="margin-left:8px" onclick="shuffleStudy()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="studyContent" style="width:100%;display:flex;flex-direction:column;align-items:center;padding:0 16px;">
+    <div class="flip-card-wrap" id="flipWrap" onclick="flipCard()">
+      <div class="flip-card" id="flipCard">
+        <div class="flip-face front">
+          <div class="face-label">Question</div>
+          <div class="face-content" id="studyQ"></div>
+          <img class="face-image" id="studyQImg" src="" alt="">
+        </div>
+        <div class="flip-face back">
+          <div class="face-label">Answer</div>
+          <div class="face-content" id="studyA"></div>
+          <img class="face-image" id="studyAImg" src="" alt="">
+        </div>
+      </div>
+    </div>
+    <div class="flip-hint" id="flipHint">tap card to flip</div>
+    <div class="study-actions" id="studyActions">
+      <button class="action-btn btn-hard" onclick="rateCard(0)">
+        😓 Hard
+        <span class="action-sub">Tomorrow</span>
+      </button>
+      <button class="action-btn btn-ok" onclick="rateCard(1)">
+        🙂 OK
+        <span class="action-sub">+same</span>
+      </button>
+      <button class="action-btn btn-easy" onclick="rateCard(2)">
+        🎯 Easy
+        <span class="action-sub">Next level</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CREATE / EDIT SCREEN ═══════════ -->
+<div class="view" id="createScreen">
+  <div class="create-header">
+    <button class="back-btn" onclick="goHome()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </button>
+    <span class="create-title" id="createTitle">New Card</span>
+    <button class="save-btn" onclick="saveCard()">Save</button>
+  </div>
+  <div class="create-body">
+    <div class="create-tabs">
+      <button class="create-tab active" onclick="switchTab('question',this)">Question</button>
+      <button class="create-tab" onclick="switchTab('answer',this)">Answer</button>
+      <button class="create-tab" onclick="switchTab('style',this)">Style</button>
+    </div>
+
+    <div class="tab-pane active" id="tab-question">
+      <div class="field-label">Question / Front</div>
+      <textarea id="qText" rows="6" placeholder="What do you want to remember?"></textarea>
+      <div class="field-label">Image (optional)</div>
+      <div class="img-upload-area" id="qImgArea">
+        <input type="file" accept="image/*" onchange="handleImg(event,'q')">
+        <img class="upload-preview" id="qImgPreview" src="" alt="">
+        <div class="upload-placeholder" id="qImgPlaceholder">
+          <div class="ico">📷</div>
+          <div>Tap to add image</div>
+          <p style="color:var(--text3);font-size:12px">Optional</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-answer">
+      <div class="field-label">Answer / Back</div>
+      <textarea id="aText" rows="6" placeholder="The answer you want to recall..."></textarea>
+      <div class="field-label">Image (optional)</div>
+      <div class="img-upload-area" id="aImgArea">
+        <input type="file" accept="image/*" onchange="handleImg(event,'a')">
+        <img class="upload-preview" id="aImgPreview" src="" alt="">
+        <div class="upload-placeholder" id="aImgPlaceholder">
+          <div class="ico">📷</div>
+          <div>Tap to add image</div>
+          <p style="color:var(--text3);font-size:12px">Optional</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-style">
+      <div class="field-label">Card Icon</div>
+      <div class="emoji-picker" id="emojiPicker"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SETTINGS SCREEN ═══════════ -->
+<div class="view" id="settingsScreen">
+  <div class="settings-header">
+    <div class="settings-title">Settings</div>
+  </div>
+  <div class="settings-list">
+    <div class="settings-group">
+      <div class="settings-group-title">Study</div>
+      <div class="setting-item">
+        <div class="setting-icon">🔀</div>
+        <div class="setting-text">
+          <div class="setting-label">Shuffle Cards</div>
+          <div class="setting-sub">Randomize study order</div>
+        </div>
+        <div class="toggle on" id="toggleShuffle" onclick="toggleSetting('shuffle',this)"></div>
+      </div>
+      <div class="setting-item">
+        <div class="setting-icon">🔒</div>
+        <div class="setting-text">
+          <div class="setting-label">Show on Lock Screen</div>
+          <div class="setting-sub">One random card when screen opens</div>
+        </div>
+        <div class="toggle on" id="toggleLock" onclick="toggleSetting('lock',this)"></div>
+      </div>
+      <div class="setting-item">
+        <div class="setting-icon">🧠</div>
+        <div class="setting-text">
+          <div class="setting-label">Spaced Repetition (SRS)</div>
+          <div class="setting-sub">1d → 3d → 7d → 30d intervals</div>
+        </div>
+        <div class="toggle on" id="toggleSRS" onclick="toggleSetting('srs',this)"></div>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Data</div>
+      <div class="setting-item" onclick="exportData()" style="cursor:pointer">
+        <div class="setting-icon">📤</div>
+        <div class="setting-text">
+          <div class="setting-label">Export Cards</div>
+          <div class="setting-sub">Download as JSON file</div>
+        </div>
+      </div>
+      <div class="setting-item" style="cursor:pointer;position:relative;overflow:hidden">
+        <div class="setting-icon">📥</div>
+        <div class="setting-text">
+          <div class="setting-label">Import Cards</div>
+          <div class="setting-sub">Load from JSON file</div>
+        </div>
+        <input type="file" accept=".json" onchange="importData(event)"
+          style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Danger Zone</div>
+      <button class="danger-btn" onclick="resetAll()">🗑 Delete All Cards</button>
+    </div>
+    <div style="text-align:center;color:var(--text3);font-size:12px;padding:24px;font-family:'Syne',sans-serif;">
+      MemorySnap v1.0 · Spaced Repetition
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ BOTTOM NAV ═══════════ -->
+<nav class="bottom-nav" id="mainNav">
+  <button class="nav-btn active" id="navHome" onclick="showView('homeScreen','navHome')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    <span>Home</span>
+  </button>
+  <button class="nav-btn" id="navStudy" onclick="startStudy()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+    </svg>
+    <span>Study</span>
+  </button>
+  <button class="nav-btn" id="navSettings" onclick="showView('settingsScreen','navSettings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════ DATA ═══════
+const SRS_INTERVALS = [1, 3, 7, 30]; // days
+const EMOJIS = ['📌','🧠','⚡','🔬','📐','🎯','💡','🌍','🔑','📚','🎨','🔭','💎','🏆','🌱'];
+
+let cards = [];
+let settings = { shuffle: true, lock: true, srs: true };
+let editingId = null;
+let studyQueue = [];
+let studyIndex = 0;
+let isFlipped = false;
+let qImgData = null;
+let aImgData = null;
+let selectedEmoji = '📌';
+let lockTapTime = 0;
+let lockAnswerShown = false;
+
+// ═══════ STORAGE ═══════
+function save(){
+  try{ localStorage.setItem('ms_cards', JSON.stringify(cards));
+       localStorage.setItem('ms_settings', JSON.stringify(settings)); }catch(e){}
+}
+function load(){
+  try{
+    const c = localStorage.getItem('ms_cards');
+    const s = localStorage.getItem('ms_settings');
+    if(c) cards = JSON.parse(c);
+    if(s) settings = Object.assign(settings, JSON.parse(s));
+  }catch(e){}
+}
+
+// ═══════ SRS ═══════
+function isDue(card){
+  if(!card.nextReview) return true;
+  return Date.now() >= card.nextReview;
+}
+function getNextReview(card, rating){
+  const now = Date.now();
+  const MS = 864e5;
+  if(rating === 0){ // Hard — reset to 1 day
+    card.level = 0;
+    return now + SRS_INTERVALS[0] * MS;
+  }
+  if(rating === 1){ // OK — stay at same level
+    const days = SRS_INTERVALS[Math.min(card.level||0, SRS_INTERVALS.length-1)];
+    return now + days * MS;
+  }
+  // Easy — advance level
+  card.level = Math.min((card.level||0) + 1, SRS_INTERVALS.length - 1);
+  return now + SRS_INTERVALS[card.level] * MS;
+}
+function getDayLabel(card){
+  if(!card.nextReview) return 'new';
+  const diff = Math.ceil((card.nextReview - Date.now()) / 864e5);
+  if(diff <= 0) return 'due';
+  return `${diff}d`;
+}
+
+// ═══════ LOCK SCREEN ═══════
+function showLockCard(){
+  const noMsg = document.getElementById('noCardsMsg');
+  const hint = document.getElementById('lockHint');
+  const wrap = document.getElementById('lockAnswerWrap');
+  lockAnswerShown = false;
+  wrap.style.display = 'none';
+
+  // Pick one random card for this screen open (important!)
+  let pool = cards;
+  if(settings.srs) pool = cards.filter(isDue);
+  if(!pool.length) pool = cards;
+
+  if(!pool.length){
+    document.getElementById('lockContent').innerHTML = `
+      <div class="no-cards-msg"><div class="icon">🃏</div>
+      <div>No cards yet.<br><span style="font-size:13px;opacity:0.6">Double tap to unlock</span></div></div>`;
+    hint.style.display = 'none';
+    return;
+  }
+
+  const card = pool[Math.floor(Math.random() * pool.length)];
+  window._lockCard = card;
+
+  // Show question full screen
+  const qImg = card.qImg ? `<img id="lockImage" src="${card.qImg}" style="display:block;width:100%;max-height:200px;object-fit:cover;border-radius:16px;margin-bottom:20px;border:1px solid rgba(108,99,255,0.2)">` : '';
+  document.getElementById('lockContent').innerHTML = `
+    <div class="lock-card-tag">${card.emoji||'📌'} ${getDayLabel(card)}</div>
+    ${qImg}
+    <div id="lockQuestion" style="font-family:'Syne',sans-serif;font-size:clamp(20px,5vw,26px);font-weight:700;line-height:1.4;color:#f0f0ff;text-align:center;">${card.question}</div>
+  `;
+  hint.style.display = 'flex';
+}
+
+let _lockTapCount = 0;
+let _lockTapTimer = null;
+function handleLockTap(e){
+  _lockTapCount++;
+  clearTimeout(_lockTapTimer);
+  _lockTapTimer = setTimeout(()=>{
+    if(_lockTapCount >= 2) revealAnswer();
+    else if(lockAnswerShown) unlockApp();
+    _lockTapCount = 0;
+  }, 280);
+}
+function revealAnswer(){
+  if(!window._lockCard) { unlockApp(); return; }
+  const card = window._lockCard;
+  lockAnswerShown = true;
+  const wrap = document.getElementById('lockAnswerWrap');
+  wrap.style.display = 'block';
+  document.getElementById('lockHint').style.display = 'none';
+  document.getElementById('lockAnswerText').textContent = card.answer;
+  const aImg = document.getElementById('lockAnswerImage');
+  if(card.aImg){ aImg.src = card.aImg; aImg.style.display = 'block'; }
+  else { aImg.style.display = 'none'; }
+}
+function unlockApp(){
+  document.getElementById('lockScreen').classList.remove('active');
+  document.getElementById('homeScreen').classList.add('active');
+  document.getElementById('mainNav').style.display = 'flex';
+  renderHome();
+}
+
+// ═══════ VIEW MANAGEMENT ═══════
+function showView(id, navId){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if(navId) document.getElementById(navId).classList.add('active');
+  if(id==='homeScreen') renderHome();
+  if(id==='settingsScreen') renderSettings();
+}
+function goHome(){ showView('homeScreen','navHome'); }
+
+// ═══════ HOME ═══════
+function renderHome(){
+  const due = cards.filter(isDue).length;
+  document.getElementById('statTotal').textContent = cards.length;
+  document.getElementById('statDue').textContent = due;
+  // streak (days studied consecutively) - simple version
+  const streak = parseInt(localStorage.getItem('ms_streak')||'0');
+  document.getElementById('statStreak').textContent = streak;
+
+  const list = document.getElementById('cardsList');
+  if(!cards.length){
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="4" y="6" width="28" height="24" rx="4"/>
+            <path d="M18 14v8M14 18h8"/>
+          </svg>
+        </div>
+        <div class="empty-title">No cards yet</div>
+        <div class="empty-sub">Tap the + button to create<br>your first memory card</div>
+      </div>`;
+    return;
+  }
+  list.innerHTML = cards.map((c,i)=>{
+    const d = getDayLabel(c);
+    const cls = d==='new'?'badge-new':d==='due'?'badge-due':'badge-ok';
+    return `<div class="flash-card-item slide-up" onclick="editCard(${i})" style="animation-delay:${i*0.04}s">
+      <div class="card-item-icon">${c.emoji||'📌'}</div>
+      <div class="card-item-info">
+        <div class="card-item-q">${c.question}</div>
+        <div class="card-item-a">${c.answer}</div>
+      </div>
+      <div class="card-item-badge ${cls}">${d}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════ CREATE / EDIT ═══════
+function openCreate(){
+  editingId = null;
+  qImgData = null; aImgData = null;
+  selectedEmoji = '📌';
+  document.getElementById('qText').value = '';
+  document.getElementById('aText').value = '';
+  clearImgPreview('q'); clearImgPreview('a');
+  document.getElementById('createTitle').textContent = 'New Card';
+  switchTab('question', document.querySelector('.create-tab'));
+  renderEmojiPicker();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('createScreen').classList.add('active');
+  document.getElementById('mainNav').style.display = 'none';
+}
+function editCard(i){
+  editingId = i;
+  const c = cards[i];
+  qImgData = c.qImg||null;
+  aImgData = c.aImg||null;
+  selectedEmoji = c.emoji||'📌';
+  document.getElementById('qText').value = c.question;
+  document.getElementById('aText').value = c.answer;
+  setImgPreview('q', c.qImg);
+  setImgPreview('a', c.aImg);
+  document.getElementById('createTitle').textContent = 'Edit Card';
+  switchTab('question', document.querySelector('.create-tab'));
+  renderEmojiPicker();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('createScreen').classList.add('active');
+  document.getElementById('mainNav').style.display = 'none';
+}
+function saveCard(){
+  const q = document.getElementById('qText').value.trim();
+  const a = document.getElementById('aText').value.trim();
+  if(!q){ showToast('Please enter a question'); return; }
+  if(!a){ showToast('Please enter an answer'); return; }
+  if(editingId !== null){
+    cards[editingId] = {...cards[editingId], question:q, answer:a, qImg:qImgData, aImg:aImgData, emoji:selectedEmoji};
+  } else {
+    cards.push({id:Date.now(), question:q, answer:a, qImg:qImgData, aImg:aImgData,
+      emoji:selectedEmoji, level:0, nextReview:null, created:Date.now()});
+  }
+  save();
+  document.getElementById('mainNav').style.display = 'flex';
+  showToast(editingId!==null ? 'Card updated ✓' : 'Card created ✓');
+  goHome();
+}
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.create-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+function handleImg(e, side){
+  const file = e.target.files[0];
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    if(side==='q'){ qImgData = ev.target.result; setImgPreview('q', ev.target.result); }
+    else { aImgData = ev.target.result; setImgPreview('a', ev.target.result); }
+  };
+  r.readAsDataURL(file);
+}
+function setImgPreview(side, src){
+  const prev = document.getElementById(side+'ImgPreview');
+  const ph = document.getElementById(side+'ImgPlaceholder');
+  const area = document.getElementById(side+'ImgArea');
+  if(src){ prev.src=src; prev.style.display='block'; ph.style.display='none'; area.classList.add('has-image'); }
+  else { prev.style.display='none'; ph.style.display=''; area.classList.remove('has-image'); }
+}
+function clearImgPreview(side){ setImgPreview(side, null); }
+function renderEmojiPicker(){
+  const p = document.getElementById('emojiPicker');
+  p.innerHTML = EMOJIS.map(e=>`
+    <button class="emoji-btn${e===selectedEmoji?' selected':''}" onclick="selectEmoji('${e}',this)">${e}</button>
+  `).join('');
+}
+function selectEmoji(e, btn){
+  selectedEmoji = e;
+  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// ═══════ STUDY ═══════
+function startStudy(){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('navStudy').classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('studyScreen').classList.add('active');
+
+  // Build queue — SRS due cards first, then all if empty
+  studyQueue = settings.srs ? cards.filter(isDue) : [...cards];
+  if(!studyQueue.length) studyQueue = [...cards];
+  if(settings.shuffle) studyQueue = shuffleArr(studyQueue);
+  studyIndex = 0;
+  showStudyCard();
+}
+function shuffleArr(a){ return [...a].sort(()=>Math.random()-0.5); }
+function shuffleStudy(){
+  studyQueue = shuffleArr(studyQueue);
+  studyIndex = 0;
+  showStudyCard();
+  showToast('Shuffled!');
+}
+function showStudyCard(){
+  const card = studyQueue[studyIndex];
+  isFlipped = false;
+  document.getElementById('flipCard').classList.remove('flipped');
+  document.getElementById('studyActions').classList.remove('visible');
+  document.getElementById('flipHint').style.display = 'flex';
+
+  if(!card){
+    document.getElementById('studyContent').innerHTML = `
+      <div class="study-empty">
+        <div class="icon">🎉</div>
+        <h2>All done!</h2>
+        <p>You've reviewed all due cards.<br>Come back tomorrow for more.</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('studyQ').textContent = card.question;
+  document.getElementById('studyA').textContent = card.answer;
+  const qi = document.getElementById('studyQImg');
+  const ai = document.getElementById('studyAImg');
+  if(card.qImg){ qi.src=card.qImg; qi.style.display='block'; }
+  else qi.style.display='none';
+  if(card.aImg){ ai.src=card.aImg; ai.style.display='block'; }
+  else ai.style.display='none';
+
+  const pct = studyQueue.length ? ((studyIndex / studyQueue.length)*100) : 0;
+  document.getElementById('studyProgressFill').style.width = pct+'%';
+  document.getElementById('studyCounter').textContent = `${studyIndex+1}/${studyQueue.length}`;
+}
+function flipCard(){
+  if(!studyQueue[studyIndex]) return;
+  isFlipped = !isFlipped;
+  document.getElementById('flipCard').classList.toggle('flipped', isFlipped);
+  if(isFlipped){
+    document.getElementById('studyActions').classList.add('visible');
+    document.getElementById('flipHint').style.display = 'none';
+  }
+}
+function rateCard(rating){
+  const card = studyQueue[studyIndex];
+  if(!card) return;
+  // Update in cards array
+  const orig = cards.find(c=>c.id===card.id);
+  if(orig){
+    orig.nextReview = getNextReview(orig, rating);
+    if(rating===0) orig.level = Math.max((orig.level||0)-1,0);
+  }
+  // Update streak
+  const today = new Date().toDateString();
+  const lastStudy = localStorage.getItem('ms_last_study');
+  if(lastStudy !== today){
+    const yesterday = new Date(Date.now()-864e5).toDateString();
+    const streak = parseInt(localStorage.getItem('ms_streak')||'0');
+    localStorage.setItem('ms_streak', lastStudy===yesterday ? streak+1 : 1);
+    localStorage.setItem('ms_last_study', today);
+  }
+  save();
+  studyIndex++;
+  showStudyCard();
+}
+
+// ═══════ SETTINGS ═══════
+function renderSettings(){
+  ['shuffle','lock','srs'].forEach(k=>{
+    const el = document.getElementById('toggle'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el) el.className = 'toggle' + (settings[k]?' on':'');
+  });
+}
+function toggleSetting(key, el){
+  settings[key] = !settings[key];
+  el.className = 'toggle' + (settings[key]?' on':'');
+  save();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify({cards, settings}, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='memorysnap_backup.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Exported!');
+}
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = ev=>{
+    try{
+      const d = JSON.parse(ev.target.result);
+      if(d.cards) cards = d.cards;
+      if(d.settings) settings = Object.assign(settings, d.settings);
+      save(); renderHome(); renderSettings();
+      showToast(`Imported ${cards.length} cards`);
+    }catch{ showToast('Invalid file'); }
+  };
+  r.readAsText(file);
+}
+function resetAll(){
+  if(confirm('Delete ALL cards? This cannot be undone.')){
+    cards = [];
+    save();
+    renderHome();
+    showToast('All cards deleted');
+  }
+}
+
+// ═══════ TOAST ═══════
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+// ═══════ SERVICE WORKER ═══════
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ═══════ INIT ═══════
+load();
+renderSettings();
+
+// Show lock screen if setting is on and there are cards
+if(settings.lock){
+  showLockCard();
+  document.getElementById('mainNav').style.display = 'none';
+} else {
+  document.getElementById('lockScreen').classList.remove('active');
+  document.getElementById('homeScreen').classList.add('active');
+  renderHome();
+}
+</script>
+</body>
+</html>
