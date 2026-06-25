@@ -724,8 +724,14 @@ let lockAnswerShown = false;
 
 // ═══════ STORAGE ═══════
 function save(){
-  try{ localStorage.setItem('ms_cards', JSON.stringify(cards));
-       localStorage.setItem('ms_settings', JSON.stringify(settings)); }catch(e){}
+  try{
+    localStorage.setItem('ms_cards', JSON.stringify(cards));
+    localStorage.setItem('ms_settings', JSON.stringify(settings));
+    // Verify save worked
+    if(!localStorage.getItem('ms_cards')) showToast('⚠️ Save failed!');
+  }catch(e){
+    alert('Storage error: ' + e.message + '\nCards may not save. Try a different browser.');
+  }
 }
 function load(){
   try{
@@ -733,7 +739,10 @@ function load(){
     const s = localStorage.getItem('ms_settings');
     if(c) cards = JSON.parse(c);
     if(s) settings = Object.assign(settings, JSON.parse(s));
-  }catch(e){}
+  }catch(e){
+    cards = [];
+    settings = { shuffle: true, lock: true, srs: true };
+  }
 }
 
 // ═══════ SRS ═══════
@@ -1104,14 +1113,19 @@ if('serviceWorker' in navigator){
 load();
 renderSettings();
 
-// Show lock screen if setting is on and there are cards
-if(settings.lock){
+// Show lock screen if setting is on
+if(settings.lock && cards.length > 0){
   showLockCard();
   document.getElementById('mainNav').style.display = 'none';
 } else {
   document.getElementById('lockScreen').classList.remove('active');
   document.getElementById('homeScreen').classList.add('active');
   renderHome();
+}
+
+// Show saved card count on load (debug helper)
+if(cards.length > 0){
+  setTimeout(()=>showToast('✓ ' + cards.length + ' cards loaded'), 500);
 }
 </script>
 </body>
