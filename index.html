@@ -75,7 +75,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #lockAnswer{
   width:100%;background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);
   border-radius:var(--radius);padding:24px;margin-top:24px;
-  display:none;text-align:left;position:relative;
+  text-align:left;position:relative;
 }
 #lockAnswer::before{
   content:'Answer';position:absolute;top:-10px;left:16px;
@@ -442,7 +442,7 @@ input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
 <!-- ═══════════ LOCK SCREEN ═══════════ -->
 <div class="view active" id="lockScreen">
-  <div id="lockCard" ondblclick="revealAnswer()" ontouchend="handleLockTap(event)">
+  <div id="lockCard" ontouchend="handleLockTap(event)" onclick="handleLockClick(event)">
     <div class="lock-tag">✦ Memory Recall</div>
     <div id="lockContent">
       <div class="no-cards-msg" id="noCardsMsg">
@@ -450,7 +450,7 @@ input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
         <div>No cards yet.<br>Unlock to add some!</div>
       </div>
     </div>
-    <div class="lock-hint" id="lockHint" style="display:none">
+    <div class="lock-hint" id="lockHint">
       <span>double tap</span> to reveal answer
     </div>
     <div class="lock-answer-wrap" id="lockAnswerWrap" style="display:none">
@@ -725,24 +725,56 @@ let lockAnswerShown = false;
 // ═══════ STORAGE ═══════
 function save(){
   try{
-    localStorage.setItem('ms_cards', JSON.stringify(cards));
+    // Strip base64 images before saving — they blow up localStorage quota
+    const cardsToSave = cards.map(c => ({
+      ...c,
+      qImg: c.qImg ? '__HAS_IMG__' : null,
+      aImg: c.aImg ? '__HAS_IMG__' : null
+    }));
+    localStorage.setItem('ms_cards', JSON.stringify(cardsToSave));
     localStorage.setItem('ms_settings', JSON.stringify(settings));
-    // Verify save worked
-    if(!localStorage.getItem('ms_cards')) showToast('⚠️ Save failed!');
   }catch(e){
-    alert('Storage error: ' + e.message + '\nCards may not save. Try a different browser.');
+    // If still quota error, clear old junk and retry
+    try{
+      localStorage.removeItem('ms_cards');
+      localStorage.removeItem('ms_settings');
+      const cardsNoImg = cards.map(c => ({...c, qImg:null, aImg:null}));
+      localStorage.setItem('ms_cards', JSON.stringify(cardsNoImg));
+      localStorage.setItem('ms_settings', JSON.stringify(settings));
+      showToast('⚠️ Images removed to free space');
+    }catch(e2){
+      showToast('⚠️ Storage full — clear browser data');
+    }
   }
 }
 function load(){
   try{
+    // Clear any old bloated data from previous versions
+    const oldKeys = ['ms_cards','ms_settings'];
     const c = localStorage.getItem('ms_cards');
     const s = localStorage.getItem('ms_settings');
-    if(c) cards = JSON.parse(c);
+    if(c){
+      const parsed = JSON.parse(c);
+      // Strip any leftover base64 blobs that made it in
+      cards = parsed.map(card => ({
+        ...card,
+        qImg: (card.qImg && card.qImg.startsWith('data:')) ? null : card.qImg === '__HAS_IMG__' ? null : card.qImg,
+        aImg: (card.aImg && card.aImg.startsWith('data:')) ? null : card.aImg === '__HAS_IMG__' ? null : card.aImg
+      }));
+    }
     if(s) settings = Object.assign(settings, JSON.parse(s));
   }catch(e){
     cards = [];
     settings = { shuffle: true, lock: true, srs: true };
   }
+}
+function clearBloatedStorage(){
+  // Emergency clear — removes all ms_ keys to free quota
+  Object.keys(localStorage).filter(k=>k.startsWith('ms_')).forEach(k=>localStorage.removeItem(k));
+  cards = [];
+  save();
+  showToast('Storage cleared! Add cards again.');
+  renderHome();
 }
 
 // ═══════ SRS ═══════
@@ -795,41 +827,89 @@ function showLockCard(){
 
   const card = pool[Math.floor(Math.random() * pool.length)];
   window._lockCard = card;
+  console.log('Lock card loaded:', JSON.stringify(card));
 
   // Show question full screen
-  const qImg = card.qImg ? `<img id="lockImage" src="${card.qImg}" style="display:block;width:100%;max-height:200px;object-fit:cover;border-radius:16px;margin-bottom:20px;border:1px solid rgba(108,99,255,0.2)">` : '';
-  document.getElementById('lockContent').innerHTML = `
-    <div class="lock-card-tag">${card.emoji||'📌'} ${getDayLabel(card)}</div>
-    ${qImg}
-    <div id="lockQuestion" style="font-family:'Syne',sans-serif;font-size:clamp(20px,5vw,26px);font-weight:700;line-height:1.4;color:#f0f0ff;text-align:center;">${card.question}</div>
-  `;
+  // Build content safely
+  const lockContent = document.getElementById('lockContent');
+  lockContent.innerHTML = '';
+
+  // Tag
+  const tag = document.createElement('div');
+  tag.className = 'lock-card-tag';
+  tag.textContent = (card.emoji||'📌') + ' ' + getDayLabel(card);
+  lockContent.appendChild(tag);
+
+  // Question image
+  if(card.qImg){
+    const img = document.createElement('img');
+    img.src = card.qImg;
+    img.style.cssText = 'display:block;width:100%;max-height:200px;object-fit:cover;border-radius:16px;margin-bottom:20px;border:1px solid rgba(108,99,255,0.2)';
+    lockContent.appendChild(img);
+  }
+
+  // Question text
+  const qDiv = document.createElement('div');
+  qDiv.id = 'lockQuestion';
+  qDiv.style.cssText = "font-family:'Syne',sans-serif;font-size:clamp(20px,5vw,26px);font-weight:700;line-height:1.4;color:#f0f0ff;text-align:center;margin-top:16px;";
+  qDiv.textContent = card.question;
+  lockContent.appendChild(qDiv);
   hint.style.display = 'flex';
+  wrap.style.display = 'none';
+  document.getElementById('lockContent').style.display = '';
+  lockAnswerShown = false;
 }
 
 let _lockTapCount = 0;
 let _lockTapTimer = null;
+let _lastTouchTime = 0;
+
+function handleLockClick(e){
+  // Desktop click: detect double-click manually
+  const now = Date.now();
+  if(lockAnswerShown){ unlockApp(); return; }
+  if(now - _lastTouchTime < 350){
+    // Double click detected
+    _lastTouchTime = 0;
+    revealAnswer();
+  } else {
+    _lastTouchTime = now;
+  }
+}
+
 function handleLockTap(e){
-  // If answer already shown, any tap goes home
+  // Mobile touch: prevent ghost click, detect double-tap
+  e.preventDefault();
   if(lockAnswerShown){ unlockApp(); return; }
   _lockTapCount++;
   clearTimeout(_lockTapTimer);
   _lockTapTimer = setTimeout(()=>{
     if(_lockTapCount >= 2) revealAnswer();
     _lockTapCount = 0;
-  }, 280);
+  }, 300);
 }
+
 function revealAnswer(){
   if(!window._lockCard) { unlockApp(); return; }
+  if(lockAnswerShown) { unlockApp(); return; }
   const card = window._lockCard;
   lockAnswerShown = true;
+
+  // Hide question content and hint
+  document.getElementById('lockContent').style.display = 'none';
+  document.getElementById('lockHint').style.display = 'none';
+
+  // Show answer wrap and inner answer box
   const wrap = document.getElementById('lockAnswerWrap');
   wrap.style.display = 'block';
-  document.getElementById('lockHint').style.display = 'none';
-  document.getElementById('lockAnswerText').textContent = card.answer;
-  const aImg = document.getElementById('lockAnswerImage');
-  if(card.aImg){ aImg.src = card.aImg; aImg.style.display = 'block'; }
-  else { aImg.style.display = 'none'; }
+  const answerBox = document.getElementById('lockAnswer');
+  answerBox.style.display = 'block';
+
+  // Set answer text
+  document.getElementById('lockAnswerText').textContent = card.answer || '(no answer)';
+  document.getElementById('lockAnswerImage').style.display = 'none';
 }
+
 function unlockApp(){
   document.getElementById('lockScreen').classList.remove('active');
   document.getElementById('homeScreen').classList.add('active');
@@ -1091,6 +1171,8 @@ function importData(e){
 function resetAll(){
   if(confirm('Delete ALL cards? This cannot be undone.')){
     cards = [];
+    // Also nuke localStorage completely to free quota
+    Object.keys(localStorage).filter(k=>k.startsWith('ms_')).forEach(k=>localStorage.removeItem(k));
     save();
     renderHome();
     showToast('All cards deleted');
