@@ -41,7 +41,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 #lockCard{
   width:100%;height:100%;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:40px 32px;
+  align-items:center;justify-content:center;padding:32px 16px;
   text-align:center;cursor:pointer;position:relative;overflow:hidden;
 }
 #lockCard::before{
@@ -74,16 +74,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 #lockAnswer{
   width:100%;background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);
-  border-radius:var(--radius);padding:24px;margin-top:24px;
+  border-radius:var(--radius);padding:24px;margin-top:28px;
   text-align:left;position:relative;
+  min-height:35vh;max-height:65vh;overflow-y:auto;
+  overflow-y:auto;
 }
-#lockAnswer::before{
-  content:'Answer';position:absolute;top:-10px;left:16px;
-  background:var(--accent);color:#fff;font-size:10px;letter-spacing:1px;
-  text-transform:uppercase;padding:3px 12px;border-radius:10px;
+#lockAnswerLabel{
+  display:inline-block;
+  background:var(--accent);color:#fff;font-size:11px;letter-spacing:1px;
+  text-transform:uppercase;padding:4px 14px;border-radius:10px;
   font-family:'Syne',sans-serif;font-weight:600;
+  margin-bottom:14px;
 }
-#lockAnswerText{font-size:16px;color:var(--text);line-height:1.6;}
+#lockAnswerText{font-size:clamp(15px,4vw,18px);color:var(--text);line-height:1.7;white-space:pre-wrap;word-break:break-word;}
 #lockAnswerImage{
   width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);
   margin-top:16px;display:none;
@@ -453,8 +456,9 @@ input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
     <div class="lock-hint" id="lockHint">
       <span>double tap</span> to reveal answer
     </div>
-    <div class="lock-answer-wrap" id="lockAnswerWrap" style="display:none">
+    <div class="lock-answer-wrap" id="lockAnswerWrap" style="display:none;width:100%;">
       <div id="lockAnswer">
+        <div id="lockAnswerLabel">Answer</div>
         <img id="lockAnswerImage" src="" alt="">
         <div id="lockAnswerText"></div>
       </div>
